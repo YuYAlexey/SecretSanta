@@ -38,11 +38,15 @@ func newConnect() (*pgx.Conn, error) {
 	ctx := context.Background()
 	db, err := pgx.Connect(ctx, constDB().Connect())
 	if err != nil {
+		// REVIEW: обмернуть ошикубку добавив информации
+		// fmt.Error("failed to connect to database error: %w", err)
 		return nil, err
 	}
 
 	if err := db.Ping(ctx); err != nil {
-		fmt.Println("Пинг не прошёл!")
+		fmt.Println("Пинг не прошёл!") // RVIERW: не стоит писать сообщений в консоль привыкай логам и в даном место нет смысла писать лог, просто оберни ошибку
+		// REVIEW: обмернуть ошикубку добавив информации
+		// fmt.Error("failed ping error: %w", err)
 		return nil, err
 	}
 	return db, nil

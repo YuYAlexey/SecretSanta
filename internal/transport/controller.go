@@ -13,6 +13,8 @@ type Controller struct {
 }
 
 func NewController(db *db.Database) *Controller {
+	// REVIEW: Почему Contraller по значет от базе дыннх!? Где слой бизнес логики?
+	// Переделать!!!!! 
 	return &Controller{db: db}
 }
 

@@ -13,5 +13,8 @@ func Service(db *db.Database) error {
 
 	r.GET("/ping", c.Ping)
 
+	r.POST("/register", c.Register)
+	r.POST("/login", c.Login)
+
 	return r.Run(":8080")
 }

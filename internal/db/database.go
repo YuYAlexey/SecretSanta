@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/adYushinW/SecretSanta/internal/model"
@@ -10,7 +10,9 @@ import (
 )
 
 type Database interface {
-	AddUser(login string, password string, first_name string, last_name string, sex string, age uint8) ([]*model.Users, error)
+	AddUser(login string, password string, firstName string, lastName string, sex string, age uint64) (bool, error)
+	WatchGift() ([]*model.Gift, error)
+	AddGift(name string, link string, description string) (bool, error)
 }
 
 type database struct {
@@ -28,37 +30,85 @@ func New() (Database, error) {
 	}, nil
 }
 
-func (db *database) AddUser(login string, password string, first_name string, last_name string, sex string, age uint8) ([]*model.Users, error) {
+func (db *database) AddUser(login string, password string, firstName string, lastName string, sex string, age uint64) (bool, error) {
 	qb := sq.Insert("users").
 		Columns("login", "password", "first_name", "last_name", "sex", "age").
-		Values(login, password, first_name, last_name, sex, age).
-		PlaceholderFormat(sq.Dollar).
-		Suffix("RETURNIGN login, password, first_name, last_name, sex, age")
+		Values(login, password, firstName, lastName, sex, age).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := qb.ToSql()
+	if err != nil {
+		return false, err
+	}
+
+	row, err := db.conn.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return false, err
+	}
+
+	if row.RowsAffected() != 1 {
+		return false, fmt.Errorf("Row not added")
+	}
+
+	return true, nil
+
+}
+
+func (db *database) WatchGift() ([]*model.Gift, error) {
+	qb := sq.Select("id", "name", "link", "description", "is_selected").
+		From("gift").
+		Where("is_selected = false").
+		PlaceholderFormat(sq.Dollar)
 
 	sql, args, err := qb.ToSql()
 	if err != nil {
 		return nil, err
 	}
 
-	row, err := db.conn.Query(context.Background(), sql, args...)
+	rows, err := db.conn.Query(context.Background(), sql, args...)
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 
-	defer row.Close()
+	result := make([]*model.Gift, 0)
 
-	result := make([]*model.Users, 0)
+	for rows.Next() {
+		gift := new(model.Gift)
 
-	user := new(model.Users)
+		if err = rows.Scan(&gift.ID, &gift.Name, &gift.Link, &gift.Description, &gift.IsSelected); err != nil {
+			continue
+		}
 
-	err = row.Scan(&user.Id)
-
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, err
+		result = append(result, gift)
 	}
 
-	result = append(result, user)
+	if err := rows.Err(); err != nil {
+		return result, err
+	}
 
 	return result, nil
+}
 
+func (db *database) AddGift(name string, link string, description string) (bool, error) {
+	qb := sq.Insert("gift").
+		Columns("name", "link", "description").
+		Values(name, link, description).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := qb.ToSql()
+	if err != nil {
+		return false, err
+	}
+
+	row, err := db.conn.Exec(context.Background(), sql, args...)
+	if err != nil {
+		return false, err
+	}
+
+	if row.RowsAffected() != 1 {
+		return false, fmt.Errorf("Row not added")
+	}
+
+	return true, nil
 }

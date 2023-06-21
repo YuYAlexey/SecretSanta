@@ -2,18 +2,19 @@ package http
 
 import (
 	"net/http"
+	"strconv"
 
-	"github.com/adYushinW/SecretSanta/internal/db"
+	"github.com/adYushinW/SecretSanta/internal/app"
 	"github.com/adYushinW/SecretSanta/internal/model"
 	"github.com/gin-gonic/gin"
 )
 
 type Controller struct {
-	db *db.Database
+	app *app.App
 }
 
-func NewController(db *db.Database) *Controller {
-	return &Controller{db: db}
+func NewController(app *app.App) *Controller {
+	return &Controller{app: app}
 }
 
 func (c *Controller) Ping(ctx *gin.Context) {
@@ -21,6 +22,8 @@ func (c *Controller) Ping(ctx *gin.Context) {
 }
 
 func (c *Controller) Register(ctx *gin.Context) {
+	var age uint64
+	var err error
 
 	user := model.Users{}
 
@@ -29,9 +32,46 @@ func (c *Controller) Register(ctx *gin.Context) {
 		return
 	}
 
-	ctx.JSON(http.StatusOK, "register")
+	if user.Age != "" {
+		age, err = strconv.ParseUint(user.Age, 10, 64)
+		if err != nil {
+			ctx.JSON(http.StatusBadRequest, "Age must be a number")
+			return
+		}
+	}
+
+	newuser, err := c.app.AddUser(user.Login, user.Password, user.FirstName, user.LastName, user.Sex, age)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, "Bad Request")
+		return
+	}
+
+	ctx.JSON(http.StatusOK, newuser)
 }
 
 func (c *Controller) Login(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, "login")
+}
+
+func (c *Controller) WatchGift(ctx *gin.Context) {
+	gift, err := c.app.WatchGift()
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, "Bad Request")
+		return
+	}
+	ctx.JSON(http.StatusOK, gift)
+}
+
+func (c *Controller) AddGift(ctx *gin.Context) {
+
+	name := ctx.Query("name")
+	link := ctx.Query("link")
+	description := ctx.Query("description")
+
+	gift, err := c.app.AddGift(name, link, description)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, "Bad Request")
+		return
+	}
+	ctx.JSON(http.StatusOK, gift)
 }

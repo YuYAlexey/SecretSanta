@@ -38,11 +38,12 @@ func newConnect() (*pgx.Conn, error) {
 	ctx := context.Background()
 	db, err := pgx.Connect(ctx, constDB().Connect())
 	if err != nil {
+		fmt.Errorf("failed to connect to database error: %w", err)
 		return nil, err
 	}
 
 	if err := db.Ping(ctx); err != nil {
-		fmt.Println("Пинг не прошёл!")
+		fmt.Errorf("failed ping error: %w", err)
 		return nil, err
 	}
 	return db, nil

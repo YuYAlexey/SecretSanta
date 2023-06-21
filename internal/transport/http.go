@@ -1,13 +1,13 @@
 package http
 
 import (
-	"github.com/adYushinW/SecretSanta/internal/db"
+	"github.com/adYushinW/SecretSanta/internal/app"
 	"github.com/gin-gonic/gin"
 )
 
-func Service(db *db.Database) error {
+func Service(app *app.App) error {
 
-	c := NewController(db)
+	c := NewController(app)
 
 	r := gin.Default()
 
@@ -15,6 +15,9 @@ func Service(db *db.Database) error {
 
 	r.POST("/register", c.Register)
 	r.POST("/login", c.Login)
+
+	r.GET("/watch_gift", c.WatchGift)
+	r.POST("/add_gift", c.AddGift)
 
 	return r.Run(":8080")
 }

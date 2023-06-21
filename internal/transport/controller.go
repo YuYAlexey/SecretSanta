@@ -9,6 +9,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// REVIEW: почему файл не в пакете controller!? перенести
+
 type Controller struct {
 	app *app.App
 }

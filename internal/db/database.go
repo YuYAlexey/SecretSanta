@@ -9,6 +9,11 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
+// REVIEW: пример сообщения об ошибке
+// var (
+// 	ErrRowNotAdded = errors.New("row not added")
+// )
+
 type Database interface {
 	AddUser(login string, password string, firstName string, lastName string, sex string, age uint64) (bool, error)
 	WatchGift() ([]*model.Gift, error)
@@ -20,6 +25,9 @@ type database struct {
 }
 
 func New() (Database, error) {
+	// REVIEW: не стоит использовать инициализировать подключение на слое с базой
+	// Лучше в функцию передать соединение, а соединение создать в main файле
+	// Пример: New(conn *pgx.Conn)
 	conn, err := newConnect()
 	if err != nil {
 		return nil, err
@@ -38,15 +46,23 @@ func (db *database) AddUser(login string, password string, firstName string, las
 
 	sql, args, err := qb.ToSql()
 	if err != nil {
+		// REVIEW: оберни ошибку и напиши пояснение к ней
 		return false, err
 	}
 
 	row, err := db.conn.Exec(context.Background(), sql, args...)
 	if err != nil {
+		// REVIEW: оберни ошибку и напиши пояснение к ней
 		return false, err
 	}
 
 	if row.RowsAffected() != 1 {
+		// REVIEW: в GO соощкния об ошибке начинабтся с буквы нижнего регистра
+		// fmt.Errorf("row not added")
+
+		// REVIEW: Стоит избегать дублирование сообщение об ошибке,
+		// у тебя такое сообщение есть в методе AddGift.
+		// Я бы вынес такую ошибку в глобальну переменную внутри пакет (пример в начале файла)
 		return false, fmt.Errorf("Row not added")
 	}
 
@@ -62,11 +78,13 @@ func (db *database) WatchGift() ([]*model.Gift, error) {
 
 	sql, args, err := qb.ToSql()
 	if err != nil {
+		// REVIEW: оберни ошибку и напиши пояснение к ней
 		return nil, err
 	}
 
 	rows, err := db.conn.Query(context.Background(), sql, args...)
 	if err != nil {
+		// REVIEW: оберни ошибку и напиши пояснение к ней
 		return nil, err
 	}
 	defer rows.Close()
@@ -84,6 +102,7 @@ func (db *database) WatchGift() ([]*model.Gift, error) {
 	}
 
 	if err := rows.Err(); err != nil {
+		// REVIEW: оберни ошибку и напиши пояснение к ней
 		return result, err
 	}
 
@@ -98,15 +117,20 @@ func (db *database) AddGift(name string, link string, description string) (bool,
 
 	sql, args, err := qb.ToSql()
 	if err != nil {
+		// REVIEW: оберни ошибку и напиши пояснение к ней
 		return false, err
 	}
 
 	row, err := db.conn.Exec(context.Background(), sql, args...)
 	if err != nil {
+		// REVIEW: оберни ошибку и напиши пояснение к ней
 		return false, err
 	}
 
 	if row.RowsAffected() != 1 {
+		// REVIEW: Стоит избегать дублирование сообщение об ошибке,
+		// у тебя такое сообщение есть в методе AddUser.
+		// Я бы вынес такую ошибку в глобальну переменную внутри пакет (пример в начале файла)
 		return false, fmt.Errorf("Row not added")
 	}
 

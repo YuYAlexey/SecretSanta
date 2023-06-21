@@ -38,11 +38,13 @@ func newConnect() (*pgx.Conn, error) {
 	ctx := context.Background()
 	db, err := pgx.Connect(ctx, constDB().Connect())
 	if err != nil {
+		// REVIEW: ОШИБКА! fmt.Errorf ни к какой переменой и никак не исользуется (см. спецификацию метода https://pkg.go.dev/fmt#Errorf)
 		fmt.Errorf("failed to connect to database error: %w", err)
 		return nil, err
 	}
 
 	if err := db.Ping(ctx); err != nil {
+		// REVIEW: ОШИБКА! fmt.Errorf ни к какой переменой и никак не исользуется (см. спецификацию метода https://pkg.go.dev/fmt#Errorf)
 		fmt.Errorf("failed ping error: %w", err)
 		return nil, err
 	}

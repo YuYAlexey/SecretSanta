@@ -19,6 +19,10 @@ func (app *App) AddUser(login string, password string, firstName string, lastNam
 	return app.db.AddUser(login, password, firstName, lastName, sex, age)
 }
 
+func (app *App) Login(login string, password string) (bool, error) {
+	return app.db.Login(login, password)
+}
+
 func (app *App) WatchGift() ([]*model.Gift, error) {
 	return app.db.WatchGift()
 }

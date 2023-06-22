@@ -2,12 +2,13 @@ package http
 
 import (
 	"github.com/adYushinW/SecretSanta/internal/app"
+	"github.com/adYushinW/SecretSanta/internal/controller"
 	"github.com/gin-gonic/gin"
 )
 
 func Service(app *app.App) error {
 
-	c := NewController(app)
+	c := controller.NewController(app)
 
 	r := gin.Default()
 
@@ -15,6 +16,9 @@ func Service(app *app.App) error {
 
 	r.POST("/register", c.Register)
 	r.POST("/login", c.Login)
+
+	r.GET("/CheckCookie", c.CheckCookie)
+	r.POST("/logout", c.Logout)
 
 	r.GET("/watch_gift", c.WatchGift)
 	r.POST("/add_gift", c.AddGift)

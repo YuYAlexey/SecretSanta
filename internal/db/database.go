@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
@@ -9,13 +10,15 @@ import (
 	"github.com/jackc/pgx/v4"
 )
 
-// REVIEW: пример сообщения об ошибке
-// var (
-// 	ErrRowNotAdded = errors.New("row not added")
-// )
+var (
+	ErrRowNotAdded  = errors.New("row not added")
+	ErrConvertToSql = errors.New("failed to convert to SQL error")
+	ErrBuildQuery   = errors.New("failed build query error")
+)
 
 type Database interface {
 	AddUser(login string, password string, firstName string, lastName string, sex string, age uint64) (bool, error)
+	Login(login string, password string) (bool, error)
 	WatchGift() ([]*model.Gift, error)
 	AddGift(name string, link string, description string) (bool, error)
 }
@@ -24,15 +27,7 @@ type database struct {
 	conn *pgx.Conn
 }
 
-func New() (Database, error) {
-	// REVIEW: не стоит использовать инициализировать подключение на слое с базой
-	// Лучше в функцию передать соединение, а соединение создать в main файле
-	// Пример: New(conn *pgx.Conn)
-	conn, err := newConnect()
-	if err != nil {
-		return nil, err
-	}
-
+func New(conn *pgx.Conn) (Database, error) {
 	return &database{
 		conn: conn,
 	}, nil
@@ -46,28 +41,51 @@ func (db *database) AddUser(login string, password string, firstName string, las
 
 	sql, args, err := qb.ToSql()
 	if err != nil {
-		// REVIEW: оберни ошибку и напиши пояснение к ней
+		err := fmt.Errorf("%s: %w", ErrConvertToSql, err)
 		return false, err
 	}
 
 	row, err := db.conn.Exec(context.Background(), sql, args...)
 	if err != nil {
-		// REVIEW: оберни ошибку и напиши пояснение к ней
+		err := fmt.Errorf("%s: %w", ErrBuildQuery, err)
 		return false, err
 	}
 
 	if row.RowsAffected() != 1 {
-		// REVIEW: в GO соощкния об ошибке начинабтся с буквы нижнего регистра
-		// fmt.Errorf("row not added")
-
-		// REVIEW: Стоит избегать дублирование сообщение об ошибке,
-		// у тебя такое сообщение есть в методе AddGift.
-		// Я бы вынес такую ошибку в глобальну переменную внутри пакет (пример в начале файла)
-		return false, fmt.Errorf("Row not added")
+		return false, fmt.Errorf("%s", ErrRowNotAdded)
 	}
 
 	return true, nil
 
+}
+
+func (db *database) Login(login string, password string) (bool, error) {
+	qb := sq.Select("id", "login", "password", "first_name, last_name, sex, age").
+		From("users").
+		Where("login = ?", login).
+		Where("password = ?", password).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := qb.ToSql()
+	if err != nil {
+		err := fmt.Errorf("%s: %w", ErrConvertToSql, err)
+		return false, err
+	}
+
+	row, err := db.conn.Query(context.Background(), sql, args...)
+	if err != nil {
+		err := fmt.Errorf("%s: %w", ErrBuildQuery, err)
+		return false, err
+	}
+
+	user := new(model.Users)
+
+	if err = row.Scan(&user.Login, &user.Password); err != pgx.ErrNoRows {
+		err := fmt.Errorf("something went wrong while reading row error: %w", err)
+		return false, err
+	}
+
+	return true, nil
 }
 
 func (db *database) WatchGift() ([]*model.Gift, error) {
@@ -78,13 +96,13 @@ func (db *database) WatchGift() ([]*model.Gift, error) {
 
 	sql, args, err := qb.ToSql()
 	if err != nil {
-		// REVIEW: оберни ошибку и напиши пояснение к ней
+		err := fmt.Errorf("%s: %w", ErrConvertToSql, err)
 		return nil, err
 	}
 
 	rows, err := db.conn.Query(context.Background(), sql, args...)
 	if err != nil {
-		// REVIEW: оберни ошибку и напиши пояснение к ней
+		err := fmt.Errorf("%s: %w", ErrBuildQuery, err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -102,7 +120,7 @@ func (db *database) WatchGift() ([]*model.Gift, error) {
 	}
 
 	if err := rows.Err(); err != nil {
-		// REVIEW: оберни ошибку и напиши пояснение к ней
+		err := fmt.Errorf("something went wrong while reading row error: %w", err)
 		return result, err
 	}
 
@@ -117,21 +135,18 @@ func (db *database) AddGift(name string, link string, description string) (bool,
 
 	sql, args, err := qb.ToSql()
 	if err != nil {
-		// REVIEW: оберни ошибку и напиши пояснение к ней
+		err := fmt.Errorf("%s: %w", ErrConvertToSql, err)
 		return false, err
 	}
 
 	row, err := db.conn.Exec(context.Background(), sql, args...)
 	if err != nil {
-		// REVIEW: оберни ошибку и напиши пояснение к ней
+		err := fmt.Errorf("%s: %w", ErrBuildQuery, err)
 		return false, err
 	}
 
 	if row.RowsAffected() != 1 {
-		// REVIEW: Стоит избегать дублирование сообщение об ошибке,
-		// у тебя такое сообщение есть в методе AddUser.
-		// Я бы вынес такую ошибку в глобальну переменную внутри пакет (пример в начале файла)
-		return false, fmt.Errorf("Row not added")
+		return false, fmt.Errorf("%s", ErrRowNotAdded)
 	}
 
 	return true, nil

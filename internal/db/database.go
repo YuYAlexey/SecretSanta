@@ -60,10 +60,9 @@ func (db *database) AddUser(login string, password string, firstName string, las
 }
 
 func (db *database) Login(login string, password string) (bool, error) {
-	qb := sq.Select("id", "login", "password", "first_name, last_name, sex, age").
+	qb := sq.Select("login", "password").
 		From("users").
-		Where("login = ?", login).
-		Where("password = ?", password).
+		Where("login = ? AND password = ?", login, password).
 		PlaceholderFormat(sq.Dollar)
 
 	sql, args, err := qb.ToSql()
@@ -72,15 +71,13 @@ func (db *database) Login(login string, password string) (bool, error) {
 		return false, err
 	}
 
-	row, err := db.conn.Query(context.Background(), sql, args...)
-	if err != nil {
-		err := fmt.Errorf("%s: %w", ErrBuildQuery, err)
-		return false, err
-	}
+	row := db.conn.QueryRow(context.Background(), sql, args...)
 
 	user := new(model.Users)
-
-	if err = row.Scan(&user.Login, &user.Password); err != pgx.ErrNoRows {
+	if err := row.Scan(&user.Login, &user.Password); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return false, nil
+		}
 		err := fmt.Errorf("something went wrong while reading row error: %w", err)
 		return false, err
 	}

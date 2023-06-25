@@ -6,7 +6,6 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/gin-contrib/sessions v0.0.5
 	github.com/gin-gonic/gin v1.9.1
-	github.com/google/uuid v1.3.0
 	github.com/jackc/pgx/v4 v4.18.1
 	github.com/lib/pq v1.10.9
 	golang.org/x/crypto v0.10.0

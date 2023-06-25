@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/adYushinW/SecretSanta/internal/app"
 	"github.com/adYushinW/SecretSanta/internal/db"
-	http "github.com/adYushinW/SecretSanta/internal/transport"
+	"github.com/adYushinW/SecretSanta/internal/transport/http"
 )
 
 func main() {

@@ -5,8 +5,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var Secret = []byte("secret")
-
 func Service(app *app.App) error {
 
 	c := NewController(app)
@@ -18,12 +16,18 @@ func Service(app *app.App) error {
 	r.POST("/register", c.Register)
 	r.POST("/login", c.Login)
 
-	//	authRoutes := r.Group("/logged").Use(middlware.AuthRequeired)
+	authRoutes := r.Group("/logged").Use(c.AuthRoute)
+	{
+		authRoutes.GET("/check_cookie", c.CheckCookie)
 
-	r.GET("/CheckCookie", c.CheckCookie)
-	r.GET("/watch_gift", c.WatchGift)
-	r.POST("/add_gift", c.AddGift)
-	r.POST("/logout", c.Logout)
+		authRoutes.GET("/watch_gift", c.WatchGift)
+		authRoutes.POST("/add_gift", c.AddGift)
+
+		authRoutes.POST("/start", c.InGame)
+		authRoutes.POST("/stop", c.OutGame)
+
+		authRoutes.POST("/logout", c.Logout)
+	}
 
 	return r.Run(":8080")
 }

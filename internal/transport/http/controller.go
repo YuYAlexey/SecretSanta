@@ -9,9 +9,26 @@ import (
 	"github.com/adYushinW/SecretSanta/internal/app"
 	"github.com/adYushinW/SecretSanta/internal/model"
 	"github.com/adYushinW/SecretSanta/internal/utils"
-	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
+
+var key *string
+var session = NewSession[CookieLogin](secretKey)
+var sLogin = "user"
+
+const (
+	//all time in seconds
+	rememberMeExpTime     = 60 * 60 * 24 * 365
+	standartCookieExpTime = 60 * 10
+	cookieName            = "gin_cookie_auth_"
+	secretKey             = "secret_key"
+)
+
+type CookieLogin struct {
+	Login    string `json:"login"`
+	Password string `json:"password"`
+	Remember string `json:"remember"`
+}
 
 type Controller struct {
 	app *app.App
@@ -86,12 +103,26 @@ func (c *Controller) Register(ctx *gin.Context) {
 }
 
 func (c *Controller) Login(ctx *gin.Context) {
-
-	user := model.Users{}
+	var remember bool
+	var err error
+	user := new(CookieLogin)
 
 	if err := ctx.BindJSON(&user); err != nil {
 		ctx.AbortWithError(http.StatusBadRequest, err)
 		return
+	}
+
+	_, err = ctx.Cookie(cookieName + user.Login)
+	if err != http.ErrNoCookie {
+		ctx.JSON(http.StatusBadRequest, "User is already logged")
+		return
+	}
+
+	if user.Remember != "" {
+		remember, err = strconv.ParseBool(user.Remember)
+		if err != nil {
+			return
+		}
 	}
 
 	login, err := c.app.Login(user.Login, user.Password)
@@ -100,16 +131,22 @@ func (c *Controller) Login(ctx *gin.Context) {
 		return
 	}
 
-	if login {
-		ctx.SetCookie(user.Login, "yes", 60, "/", "", false, true)
+	if login && remember {
+		session_key := session.Set(*user, rememberMeExpTime)
+		key = &session_key
+		ctx.SetCookie(cookieName+user.Login, "yes", rememberMeExpTime, "/", "", false, true)
+	} else if login && !remember {
+		session_key := session.Set(*user, standartCookieExpTime)
+		key = &session_key
+		ctx.SetCookie(cookieName+user.Login, "yes", standartCookieExpTime, "/", "", false, true)
 	}
 
-	ctx.JSON(http.StatusOK, fmt.Sprint("Login success!", user.Login))
+	ctx.JSON(http.StatusOK, "Login success!")
 }
 
 func (c *Controller) CheckCookie(ctx *gin.Context) {
 
-	user := model.Users{}
+	user := &CookieLogin{}
 
 	if err := ctx.BindJSON(&user); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
@@ -118,38 +155,63 @@ func (c *Controller) CheckCookie(ctx *gin.Context) {
 
 	_, err := ctx.Cookie(user.Login)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, fmt.Sprint("No cookie with current login: ", user.Login))
+		ctx.JSON(http.StatusBadRequest, "No cookie for current login")
 		return
 	}
-	ctx.JSON(http.StatusOK, fmt.Sprint("Cookie Get Success for: ", user.Login))
+	ctx.JSON(http.StatusOK, fmt.Sprint("Cookie Get Succeed for: ", user.Login))
 }
 
 func (c *Controller) Logout(ctx *gin.Context) {
 
-	user := model.Users{}
+	user := CookieLogin{}
 
 	if err := ctx.BindJSON(&user); err != nil {
 		ctx.JSON(http.StatusBadRequest, err)
 		return
 	}
 
-	_, err := ctx.Cookie("user")
+	_, err := ctx.Cookie(cookieName + user.Login)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, fmt.Sprint("User is already logout: ", user.Login))
+		ctx.JSON(http.StatusBadRequest, "User is already logout")
 		return
 	}
 
-	ctx.SetCookie(user.Login, "", -1, "/", "", false, true)
-	ctx.JSON(http.StatusOK, fmt.Sprint("You are logout!", user.Login))
+	ctx.SetCookie(cookieName+user.Login, "", -1, "/", "", false, true)
+	ctx.JSON(http.StatusOK, "You are logout!")
 }
 
 func (c *Controller) WatchGift(ctx *gin.Context) {
+
 	gift, err := c.app.WatchGift()
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, "Bad Request")
 		return
 	}
 	ctx.JSON(http.StatusOK, gift)
+}
+
+func (c *Controller) InGame(ctx *gin.Context) {
+
+	user := CookieLogin{}
+
+	_, err := c.app.StartParticipate(user.Login, true)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, "Bad Request")
+		return
+	}
+	ctx.JSON(http.StatusOK, "You are in game")
+}
+
+func (c *Controller) OutGame(ctx *gin.Context) {
+
+	user := &CookieLogin{}
+
+	_, err := c.app.StopParticipate(user.Login, false)
+	if err != nil {
+		ctx.JSON(http.StatusBadRequest, "Bad Request")
+		return
+	}
+	ctx.JSON(http.StatusOK, "You are not play anymore")
 }
 
 func (c *Controller) AddGift(ctx *gin.Context) {
@@ -166,14 +228,23 @@ func (c *Controller) AddGift(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gift)
 }
 
-func (c *Controller) Cookie(ctx *gin.Context) {
+func (c *Controller) AuthRoute(ctx *gin.Context) {
 
-	session := sessions.Default(ctx)
+	user := sLogin
 
-	if session.Get("hello") != "world" {
-		session.Set("hello", "world")
-		session.Save()
+	_, err := ctx.Cookie(cookieName + user)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, "user unauthorized")
+		ctx.Abort()
+		return
 	}
 
-	ctx.JSON(http.StatusOK, session.Get("hello"))
+	username, ok := session.Get(*key)
+	if !ok {
+		ctx.JSON(http.StatusUnauthorized, "user unauthorized")
+		ctx.Abort()
+		return
+	}
+	ctx.Set("username", username)
+	ctx.Next()
 }

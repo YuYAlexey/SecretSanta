@@ -27,6 +27,14 @@ func (app *App) WatchGift() ([]*model.Gift, error) {
 	return app.db.WatchGift()
 }
 
+func (app *App) StartParticipate(login string, isPlay bool) (bool, error) {
+	return app.db.Participate(login, isPlay)
+}
+
+func (app *App) StopParticipate(login string, isPlay bool) (bool, error) {
+	return app.db.Participate(login, isPlay)
+}
+
 func (app *App) AddGift(name string, link string, description string) (bool, error) {
 	return app.db.AddGift(name, link, description)
 }

@@ -21,6 +21,7 @@ type Database interface {
 	Login(login string, password string) (bool, error)
 	WatchGift() ([]*model.Gift, error)
 	AddGift(name string, link string, description string) (bool, error)
+	Participate(login string, isPlay bool) (bool, error)
 }
 
 type database struct {
@@ -128,6 +129,32 @@ func (db *database) AddGift(name string, link string, description string) (bool,
 	qb := sq.Insert("gift").
 		Columns("name", "link", "description").
 		Values(name, link, description).
+		PlaceholderFormat(sq.Dollar)
+
+	sql, args, err := qb.ToSql()
+	if err != nil {
+		err := fmt.Errorf("%s: %w", ErrConvertToSql, err)
+		return false, err
+	}
+
+	row, err := db.conn.Exec(context.Background(), sql, args...)
+	if err != nil {
+		err := fmt.Errorf("%s: %w", ErrBuildQuery, err)
+		return false, err
+	}
+
+	if row.RowsAffected() != 1 {
+		return false, fmt.Errorf("%s", ErrRowNotAdded)
+	}
+
+	return true, nil
+}
+
+func (db *database) Participate(login string, isPlay bool) (bool, error) {
+	qb := sq.Insert("users").
+		Columns("is_player").
+		Values(isPlay).
+		Suffix("WHERE login = ", login).
 		PlaceholderFormat(sq.Dollar)
 
 	sql, args, err := qb.ToSql()

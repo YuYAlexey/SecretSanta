@@ -8,7 +8,7 @@ type Users struct {
 	LastName  string `json:"last_name"`
 	Sex       string `json:"sex"`
 	Age       string `json:"age"`
-	Gift      uint64 `json:"gift"`
+	Gift      string `json:"gift"`
 	IsPlayer  bool   `json:"is_player"`
 }
 

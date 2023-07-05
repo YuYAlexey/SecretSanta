@@ -128,16 +128,28 @@ func (c *Controller) Login(ctx *gin.Context) {
 		ctx.JSON(http.StatusBadRequest, "Bad Request")
 		return
 	}
-
-	if login && remember {
-		session_key := session.Set(*user, rememberMeExpTime)
+	// Код повторяется и нагромождён проверкой. В теле условия меняется только одна переменная,
+	// поэтому можно упросить через промежуточную переменную и избавиться от двойной проверки `login`,
+	// повысив читаемость кода
+	if login {
+		maxAgg := standartCookieExpTime
+		if remember {
+			maxAgg = rememberMeExpTime
+		}
+		session_key := session.Set(*user, maxAgg)
 		key = &session_key
-		ctx.SetCookie(cookieName, "yes", rememberMeExpTime, "/", "", false, true)
-	} else if login && !remember {
-		session_key := session.Set(*user, standartCookieExpTime)
-		key = &session_key
-		ctx.SetCookie(cookieName, "yes", standartCookieExpTime, "/", "", false, true)
+		ctx.SetCookie(cookieName, "yes", maxAgg, "/", "", false, true)
 	}
+
+	// if login && remember {
+	// 	session_key := session.Set(*user, rememberMeExpTime)
+	// 	key = &session_key
+	// 	ctx.SetCookie(cookieName, "yes", rememberMeExpTime, "/", "", false, true)
+	// } else if login && !remember {
+	// 	session_key := session.Set(*user, standartCookieExpTime)
+	// 	key = &session_key
+	// 	ctx.SetCookie(cookieName, "yes", standartCookieExpTime, "/", "", false, true)
+	// }
 
 	ctx.JSON(http.StatusOK, "Login success!")
 }
@@ -266,7 +278,16 @@ func (c *Controller) GiftForWho(ctx *gin.Context) {
 }
 
 func (c *Controller) SecretSanta(ctx *gin.Context) {
-
+	// Код не используется, но проверка err осуществляется
+	// Раз уж решил проинициализировать переменную, то не переопределяй где-то ниже для временных тестов
+	// Снижается читаемость. Моё предложение:
+	//
+	// // players, err := c.app.SecretSanta()
+	// // if err != nil {
+	// // 	ctx.JSON(http.StatusBadRequest, "Bad Request")
+	// // 	return
+	// // }
+	// players := []uint64{1, 2, 3, 4}
 	players, err := c.app.SecretSanta()
 
 	if err != nil {
@@ -277,6 +298,7 @@ func (c *Controller) SecretSanta(ctx *gin.Context) {
 	players = []uint64{1, 2, 3, 4} // для тестирования различного количетсва
 	giver := make([]uint64, len(players))
 	copy(giver, players)
+	// Некорректное название recepient => recipient
 	recepient := make([]uint64, len(players))
 	copy(recepient, players)
 

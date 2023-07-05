@@ -11,6 +11,17 @@ func Service(app *app.App) error {
 
 	r := gin.Default()
 
+	// Мне кажется нужно выработать какую-нибудь структуру endpoint'ов,
+	// так как появилось много сущностей и образуется беспорядочность. Например
+	// /auth/register
+	// /auth/login
+	// /auth/logout
+	// /game/start
+	// /game/stop
+	// /gift/add
+	// /gift/set
+	// /gift/watch
+	// ...etc
 	r.GET("/ping", c.Ping)
 
 	r.POST("/register", c.Register)
@@ -21,6 +32,8 @@ func Service(app *app.App) error {
 		authRoutes.GET("/check_cookie", c.CheckCookie)
 
 		authRoutes.GET("/watch_gift", c.WatchGift)
+		// Не совсем понятно название set рядом с add.
+		// Можно попробовать переименовать в bindGift и оставить addGift, так понятнее
 		authRoutes.POST("set_gift", c.SetGift)
 		authRoutes.POST("/add_gift", c.AddGift)
 		authRoutes.GET("/gift", c.GiftForWho)

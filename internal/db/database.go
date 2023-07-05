@@ -198,6 +198,8 @@ func (db *database) SetGift(login string, gift string) (bool, error) {
 	sqb := sq.Select("id").
 		From("gift").
 		Where("lower(name) = ?", gift)
+	// Попробуй вызвать sqb.ToSql() и посмотреть какой запрос получается
+	// Возможно он иначе отображается в sq, чем твой рабочий пример SQL
 	//Не уменьшает текст для поя Name, хотя в SQL работает
 
 	qb := sq.Update("users").

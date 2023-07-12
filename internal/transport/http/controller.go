@@ -123,17 +123,24 @@ func (c *Controller) Login(ctx *gin.Context) {
 		}
 	}
 
-	login, err := c.app.Login(user.Login, user.Password)
+	existinUser, err := c.app.Login(user.Login)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, "Bad Request")
+		ctx.JSON(http.StatusBadRequest, "Wrong login or password")
 		return
 	}
 
-	if login && remember {
+	errHash := utils.CompareHashPassword(user.Password, existinUser.Password)
+
+	if !errHash {
+		ctx.JSON(http.StatusBadRequest, "Wrong password")
+		return
+	}
+
+	if remember {
 		session_key := session.Set(*user, rememberMeExpTime)
 		key = &session_key
 		ctx.SetCookie(cookieName, "yes", rememberMeExpTime, "/", "", false, true)
-	} else if login && !remember {
+	} else if !remember {
 		session_key := session.Set(*user, standartCookieExpTime)
 		key = &session_key
 		ctx.SetCookie(cookieName, "yes", standartCookieExpTime, "/", "", false, true)
@@ -274,7 +281,7 @@ func (c *Controller) SecretSanta(ctx *gin.Context) {
 		return
 	}
 
-	players = []uint64{1, 2, 3, 4} // для тестирования различного количетсва
+	players = []uint64{1, 2, 3, 4, 5, 6} // для тестирования различного количетсва
 	giver := make([]uint64, len(players))
 	copy(giver, players)
 	recepient := make([]uint64, len(players))

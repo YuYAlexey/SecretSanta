@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/adYushinW/SecretSanta/internal/app"
-	"github.com/adYushinW/SecretSanta/internal/db"
-	"github.com/adYushinW/SecretSanta/internal/transport/http"
+	"github.com/YuYAlexey/SecretSanta/internal/app"
+	"github.com/YuYAlexey/SecretSanta/internal/db"
+	"github.com/YuYAlexey/SecretSanta/internal/transport/http"
 )
 
 func main() {

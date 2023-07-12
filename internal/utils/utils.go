@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/adYushinW/SecretSanta/internal/model"
+	"github.com/YuYAlexey/SecretSanta/internal/model"
 	"golang.org/x/crypto/bcrypt"
 )
 

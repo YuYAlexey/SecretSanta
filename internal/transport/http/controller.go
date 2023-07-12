@@ -5,9 +5,9 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/adYushinW/SecretSanta/internal/app"
-	"github.com/adYushinW/SecretSanta/internal/model"
-	"github.com/adYushinW/SecretSanta/internal/utils"
+	"github.com/YuYAlexey/SecretSanta/internal/app"
+	"github.com/YuYAlexey/SecretSanta/internal/model"
+	"github.com/YuYAlexey/SecretSanta/internal/utils"
 	"github.com/gin-gonic/gin"
 )
 

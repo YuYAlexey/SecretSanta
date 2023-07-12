@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/adYushinW/SecretSanta/internal/db"
-	"github.com/adYushinW/SecretSanta/internal/model"
+	"github.com/YuYAlexey/SecretSanta/internal/db"
+	"github.com/YuYAlexey/SecretSanta/internal/model"
 )
 
 type App struct {

@@ -1,7 +1,7 @@
 package http
 
 import (
-	"github.com/adYushinW/SecretSanta/internal/app"
+	"github.com/YuYAlexey/SecretSanta/internal/app"
 	"github.com/gin-gonic/gin"
 )
 

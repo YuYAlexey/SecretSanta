@@ -18,7 +18,7 @@ var (
 
 type Database interface {
 	AddUser(login string, password string, firstName string, lastName string, sex string, age uint64) (bool, error)
-	Login(login string, password string) (bool, error)
+	Login(login string) (*model.Users, error)
 	WatchGift() ([]*model.Gift, error)
 	AddGift(name string, link string, description string) (bool, error)
 	SetGift(login string, gift string) (bool, error)
@@ -70,30 +70,30 @@ func (db *database) AddUser(login string, password string, firstName string, las
 
 }
 
-func (db *database) Login(login string, password string) (bool, error) {
-	qb := sq.Select("login", "password").
+func (db *database) Login(login string) (*model.Users, error) {
+	qb := sq.Select("password").
 		From("users").
-		Where("login = ? AND password = ?", login, password).
+		Where("login = ?", login).
 		PlaceholderFormat(sq.Dollar)
 
 	sql, args, err := qb.ToSql()
 	if err != nil {
 		err := fmt.Errorf("%s: %w", ErrConvertToSql, err)
-		return false, err
+		return nil, err
 	}
 
 	row := db.conn.QueryRow(context.Background(), sql, args...)
 
 	user := new(model.Users)
-	if err := row.Scan(&user.Login, &user.Password); err != nil {
+	if err := row.Scan(&user.Password); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return false, nil
+			return nil, err
 		}
 		err := fmt.Errorf("something went wrong while reading row error: %w", err)
-		return false, err
+		return nil, err
 	}
 
-	return true, nil
+	return user, nil
 }
 
 func (db *database) WatchGift() ([]*model.Gift, error) {
@@ -162,27 +162,14 @@ func (db *database) AddGift(name string, link string, description string) (bool,
 
 func (db *database) GiftForWho(login string) (*recipientGift, error) {
 
-	sqb := sq.Select("gr.recipient").
-		From("users u").
-		LeftJoin("giverrecipient gr ON u.id = gr.giver").
-		Where("login = ?", login).PlaceholderFormat(sq.Dollar)
+	query := `SELECT u.first_name, u.last_name, g.name  FROM users u  
+	JOIN gift g ON g.id = u.gift 
+	WHERE u.id = (SELECT gr.recipient FROM users u JOIN giverrecipient gr ON u.id = gr.giver WHERE login = $1)`
 
-	qb := sq.Select("u.first_name", "u.last_name", "g.name").
-		From("users u").
-		LeftJoin("gift g ON g.id = u.gift").
-		Where("u.id = ?", sqb).
-		PlaceholderFormat(sq.Dollar)
-
-	sql, args, err := qb.ToSql()
-	if err != nil {
-		err := fmt.Errorf("%s: %w", ErrConvertToSql, err)
-		return nil, err
-	}
-
-	row := db.conn.QueryRow(context.Background(), sql, args...)
+	row := db.conn.QueryRow(context.TODO(), query, login)
 
 	user := new(recipientGift)
-	if err = row.Scan(&user.FirstName, &user.LastName, &user.GiftName); err != nil {
+	if err := row.Scan(&user.FirstName, &user.LastName, &user.GiftName); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
 		}
@@ -198,8 +185,8 @@ func (db *database) SetGift(login string, gift string) (bool, error) {
 	sqb := sq.Select("id").
 		From("gift").
 		Where("lower(name) = ?", gift)
-	//Не уменьшает текст для поя Name, хотя в SQL работает
 
+	fmt.Println(sqb.ToSql())
 	qb := sq.Update("users").
 		Set("gift", sqb).
 		Where("login = ?", login).

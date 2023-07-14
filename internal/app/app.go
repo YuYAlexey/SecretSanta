@@ -19,8 +19,8 @@ func (app *App) AddUser(login string, password string, firstName string, lastNam
 	return app.db.AddUser(login, password, firstName, lastName, sex, age)
 }
 
-func (app *App) Login(login string, password string) (bool, error) {
-	return app.db.Login(login, password)
+func (app *App) Login(login string) (*model.Users, error) {
+	return app.db.Login(login)
 }
 
 func (app *App) Participate(login string, isPlay bool) error {

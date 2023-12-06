@@ -1,4 +1,4 @@
-module github.com/adYushinW/SecretSanta
+module github.com/YuYAlexey/SecretSanta
 
 go 1.18
 

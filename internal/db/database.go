@@ -6,7 +6,8 @@ import (
 	"fmt"
 
 	sq "github.com/Masterminds/squirrel"
-	"github.com/adYushinW/SecretSanta/internal/model"
+	"github.com/YuYAlexey/SecretSanta/internal/model"
+
 	"github.com/jackc/pgx/v4"
 )
 
